@@ -2,7 +2,7 @@
 # to use the NinjasAPI set to TRUE
 EXTERNAL_API = False
 TARGET_COUNTRY = "Japan"
-WEBSITE_TITLE = "website.com"
+WEBSITE_TITLE = "Somali Duplex"
 DARK_THEME = "mantine_dark"
 LIGHT_THEME = "mantine_light"
 

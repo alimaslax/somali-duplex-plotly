@@ -15,7 +15,15 @@ dashboard = Dash(
 
 dmc.add_figure_templates()
 
-dashboard.layout = dmc.MantineProvider(children=[app_shell.get_app_shell()])
+dashboard.layout = dmc.MantineProvider(
+    children=[app_shell.get_app_shell()],
+    defaultColorScheme="dark",
+    theme={
+        "fontFamily": "Avenir Next, Avenir, Segoe UI, sans-serif",
+        "headings": {"fontFamily": "Charter, Georgia, serif"},
+        "primaryColor": "cyan",
+    },
+)
 
 
 if __name__ == "__main__":

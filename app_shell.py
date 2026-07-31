@@ -1,6 +1,6 @@
 import dash
 import dash_mantine_components as dmc
-from dash import dcc
+from dash import dcc, html
 from dash_iconify import DashIconify
 
 import components.navbar as nav
@@ -39,15 +39,12 @@ def get_app_shell() -> dmc.AppShell:
                                     hiddenFrom="sm",
                                     opened=False,
                                 ),
-                                dmc.Image(
-                                    src=dash.get_asset_url("favicon-192x192.png"),
-                                    w=40,
-                                    h=40,
-                                ),
+                                html.Div("SD", className="brand-mark"),
                                 dmc.Title(
                                     consts.WEBSITE_TITLE,
                                     className="main-title",
                                 ),
+                                html.Span("RESEARCH SYSTEM", className="header-kicker"),
                             ]
                         ),
                         theme_toggle,
@@ -55,17 +52,17 @@ def get_app_shell() -> dmc.AppShell:
                     justify="space-between",
                     style={"flex": 1},
                     h="100%",
-                    px="md",
+                    px={"base": "md", "sm": "xl"},
                 ),
             ),
             nav.load_navbar(),
-            dmc.AppShellMain(dash.page_container),
+            dmc.AppShellMain(dash.page_container, className="app-main"),
             dcc.Location(id="url"),
         ],
-        header={"height": 60},
-        padding="md",
+        header={"height": 76},
+        padding=0,
         navbar={
-            "width": 300,
+            "width": 268,
             "breakpoint": "sm",
             "collapsed": {"mobile": True},
         },

@@ -1,105 +1,134 @@
-# Plotly Dash - Multi-Page Project Structure
+# Somali Duplex Dashboard
 
-Many online examples for Dash dashboards are presented in a single file, and although this is
-fine for small simple dashboards, it becomes impossible to manage as a project increases in size,
-and potentially onto multiple pages.
+Somali Duplex is a Somali text-to-speech research and data pipeline. Its goal is
+to build a model that learns Somali pronunciation, phrasing, prosody, and
+natural speaker characteristics from authorised native Somali recordings paired
+with accurate Somali transcripts.
 
-It therefore becomes necessary to start breaking up the single file to create a logical project
-structure to make project management easier.
+This repository is the Plotly Dash interface for exploring that work. The
+dashboard is intended to make the corpus and training journey legible: what
+audio has been collected, where it is in the processing pipeline, how much
+verified material is available, and how model experiments perform.
 
-However, there are limited examples available on how to achieve a structured multi-page app, and
-there appears to be no standard "official" way to go about this.
+## Project goal
 
-Furthermore, any examples of multi-page apps present a bear-bones structure that typically doesn't
-include any example graphing etc. leaving some guesswork with regard to actually getting the app to work reliably.
+The target is not English speech delivered with a Somali accent. It is a model
+that can turn written Somali into clear, natural Somali speech. The project
+uses a pretrained multilingual speech model as a starting point, then adapts
+it with clean Somali speech and transcript pairs. A corpus of roughly 100
+hours is a useful first target; larger, well-reviewed corpora support stronger
+quality and broader voice coverage.
 
-## Aim
+## End-to-end pipeline
 
-With the above in mind, this repo is primarily concerned with four items in relation to creating a Dash dashboard:
+```text
+Authorised Somali recordings
+          |
+          v
+Source collection and rights review
+          |
+          v
+Silero VAD segmentation (20–30 second speech clips)
+          |
+          v
+DeepFilterNet 3 denoising and loudness normalisation
+          |
+          v
+Mono 24 kHz, 16-bit FLAC + metadata
+          |
+          v
+Transcription, timestamp review, and speaker/quality checks
+          |
+          v
+Optional punctuation recovery from real word pauses
+          |
+          v
+Versioned train / development / test datasets
+          |
+          v
+CosyVoice 3 fine-tuning and held-out evaluation
+```
 
-1. Multi-page
-2. Logical project structure (i.e. not all in one file, and with a multi-folder structure)
-3. Fully functional including data (API) and graphing (Plotly)
-4. Git ready
+### 1. Collection and preparation
 
-## Other features
+Recordings must be Somali-language material that the project is authorised to
+process and train on. The preferred sources are clean, intelligible speech with
+reliable transcripts: studio podcasts, narration, and formal broadcast speech
+are useful complements when their speakers and usage rights are understood.
 
-As mentioned above, a lot of examples are limited in terms of what they include. They typically
-only provide information on the EXACT thing they are referring to rather than having
-a fully functional example with data.
+Raw recordings are segmented with Silero VAD, then processed in one local pass
+with DeepFilterNet 3 and loudness normalisation. Final data is published as
+mono, 24 kHz, 16-bit lossless FLAC clips with `metadata.json`. Temporary VAD
+WAV files are discarded. The processing job skips already-complete sources and
+refuses partial or conflicting output, protecting dataset integrity.
 
-Although, this is understandable to a certain extent, as too much information can be confusing,
-sometimes it can leave the user with a lot to figure out later down the line.
+### 2. Transcripts and review
 
-This repo therefore provides a fully functional base that the user can run, and experiment with,
-straight away, and therefore use a reference point to develop their own project from.
+Each final clip needs a transcript that matches what was actually spoken. The
+project can review transcript tasks in Label Studio, which serves source FLAC
+files alongside the corresponding CosyVoice transcript data. Audio, text,
+speaker attribution, and splits should be checked before a clip becomes
+training data.
 
-This repo includes the following, in addition to being multipage and featuring a logical structure
-of folders and files:
+Timing information can also improve phrasing. The optional pause-alignment
+workflow derives punctuation from real word timestamps without changing the
+audio or rewriting Somali words. It uses normal punctuation such as commas,
+periods, question marks, and ellipses—never unsupported pause tags—and stages
+all edits for audit and human review before building a new dataset version.
 
-1. A sidebar which lists the available pages, and highlights which page is active as you change page
-2. A header with website name, logo and dark/light theme switch
-3. Mobile ready responsive layout with collapsible sidebar
-4. Dark/light theme switching, including dark light theming of the Plotly graphs
-5. Two different API integrations, one local (Plotly Gapminder), and one remote with logic for API keys (NinjasAPI)
-6. Git ready, with logic to keep API keys out of the code, and auto DEBUG/production mode (python-dotenv)
-7. A simple example of bespoke styling using style.css
-8. Utilises DASH Mantine Components for general styling providing a consistent theme
+### 3. Model adaptation
 
-## Basic usage
+The planned base model is `FunAudioLLM/Fun-CosyVoice3-0.5B-2512`. Somali text
+tokenizes losslessly in its existing tokenizer, but that alone does not prove
+Somali pronunciation quality. The model must learn Somali speech patterns from
+the reviewed corpus.
 
-To run the code in this repo follow the following steps:
+The first fine-tuning experiment fully adapts CosyVoice's LLM and Flow
+modules, while keeping the HiFT/HiFi-GAN vocoder frozen. This focuses training
+on Somali text-to-speech mapping, timing, prosody, and acoustics while
+preserving stable 24 kHz waveform synthesis. Training belongs on a Linux CUDA
+machine; this Mac workspace is used for data work, inspection, and inference.
 
-### Create your virtual environment and install packages
+### 4. Evaluation and promotion
 
-Create your virtual environment and activate it. You can do this however you choose. For example:
+Every candidate model is compared with the base model on a held-out Somali
+test set. Evaluation combines transcript fidelity, native-speaker
+pronunciation review, naturalness and pause quality, speaker similarity, and
+waveform checks for clipping, noise, or instability. A checkpoint is promoted
+only when it improves Somali intelligibility without materially degrading voice
+quality.
+
+## Dashboard scope
+
+The Dash application is the reporting layer for Somali Duplex. As the data
+products are connected, it can present collection and processing status,
+duration and speaker coverage, transcription-review progress, dataset-version
+comparisons, and evaluation results. It is deliberately separate from the
+audio-processing and training jobs: the dashboard observes the pipeline rather
+than modifying raw recordings or checkpoints.
+
+## Run locally
+
+Activate the project environment and start Dash from this repository:
 
 ```bash
-cd project-folder
-python -m venv venv
-source venv/bin/activate
+conda activate "Somali Duplex"
+cd /Users/mali/ai/somali-duplex-plotly
+python main.py
 ```
 
-Then install the required packages:
+Dash prints the local address when it starts. In development, it normally
+serves on `http://127.0.0.1:8050`.
 
-```bash
-pip install --upgrade pip
-pip install -r requirements.txt
-```
+## Related workspaces
 
-### Create a ".env" file
-
-The project uses ```python-dotenv``` to keep things like API Keys out of the project code by using a local file to store sensitive data, so you won't find this file included in the repo. You will need to create your own.
-
-In the root of the project folder create a file with the name: ```.env```
-
-As an example of what to include in the file, the following is what could be used in a local development environment:
-
-```python
-DEBUG = True
-NINJAS_API_KEY = "s0L889BwIkT2ThjHDROVGH==fkluRlLyGgfUUPgh"
-```
-
-The default data API used in this repository is the Gapminder API included with the libraries for Plotly. If you wish to use the API Ninjas API you will need to get your own API key (A free limited use API Key can be acquired for free from their website). The API key then needs to be included in the ```.env``` file (as shown above). Finally, set the ```EXTERNAL_API``` flag in ```utils/consts.py``` to ```True```.
-
-Within a live environment you could change the ```DEBUG``` value to ```False```. Utilising this method has the advantage of being able to use git to update code between dev and live environments without having to change the ```DEBUG``` value every time, as this local file is not included in the git repo and is exclusive to the machine/server it is created on.
-
-### Run the project
-
-To run the project just execute the following line from within the project directory:
-
-```python main.py```
-
-You will then be told the local IP address that you can open in a browser to access the project front end.
-
-## References
-
-[Plotly DASH](https://dash.plotly.com/)
-
-[DASH Mantine Components](https://www.dash-mantine-components.com/)
+- `/Users/mali/ai/sod-code` contains the collection, audio processing,
+  transcript-review, and CosyVoice training documentation and scripts.
+- `/Users/mali/ai/sod-audio` holds the private audio dataset and associated
+  metadata.
+- `/Users/mali/ai/CosyVoice` contains the local CosyVoice runtime and model
+  assets used for inference and training experiments.
 
 ## License
 
-The content of this project is licensed under the [MIT License](LICENSE.md)
-
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/Z8Z7G2C89)
+This repository is licensed under the [MIT License](LICENSE).
