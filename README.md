@@ -107,6 +107,23 @@ comparisons, and evaluation results. It is deliberately separate from the
 audio-processing and training jobs: the dashboard observes the pipeline rather
 than modifying raw recordings or checkpoints.
 
+### Omar dataset analysis
+
+The `/dataset` page reports a complete scan of the processed Omar transcript
+tree: corpus hours, timed-word coverage, WPM distribution, low/medium/high pace
+bands, pause statistics, source-level variation, technical FLAC compliance,
+and the punctuation-normalization audit. Rebuild its checked analysis artifacts
+with:
+
+```bash
+cd /Users/mali/ai/somali-duplex-plotly
+.venv/bin/python scripts/analyze_omar_dataset.py
+```
+
+The analyzer writes one row per WPM-eligible clip to `data/omar_wpm.csv` and an
+aggregate report to `data/omar_dataset_summary.json`. Audio-event-only JSON
+records remain part of total corpus hours but are excluded from pace labeling.
+
 ## Run locally
 
 Activate the project environment and start Dash from this repository:

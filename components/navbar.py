@@ -22,6 +22,14 @@ def load_navbar() -> dmc.AppShellNavbar:
                         ),
                         className="project-nav-link",
                     ),
+                    dmc.NavLink(
+                        label="Dataset",
+                        description="Hours, pace tiers, and normalization",
+                        href="/dataset",
+                        active="exact",
+                        leftSection=DashIconify(icon="ph:chart-bar-bold", width=21),
+                        className="project-nav-link",
+                    ),
                     html.Div(
                         [
                             dmc.NavLink(

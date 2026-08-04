@@ -3,8 +3,6 @@ import dash_mantine_components as dmc
 from dash import dcc, html
 from dash_iconify import DashIconify
 
-import components.navbar as nav
-import callbacks.navbar
 import utils.consts as consts
 
 
@@ -33,21 +31,24 @@ def get_app_shell() -> dmc.AppShell:
                     [
                         dmc.Group(
                             [
-                                dmc.Burger(
-                                    id="burger",
-                                    size="sm",
-                                    hiddenFrom="sm",
-                                    opened=False,
-                                ),
                                 html.Div("SD", className="brand-mark"),
                                 dmc.Title(
                                     consts.WEBSITE_TITLE,
                                     className="main-title",
                                 ),
-                                html.Span("RESEARCH SYSTEM", className="header-kicker"),
+                                html.Span("RESEARCH NOTES", className="header-kicker"),
                             ]
                         ),
-                        theme_toggle,
+                        dmc.Group(
+                            [
+                                html.A("Home", href="/", className="top-nav-link"),
+                                html.A("Dataset", href="/dataset", className="top-nav-link"),
+                                html.A("CosyVoice 3", href="/cosyvoice-3", className="top-nav-link"),
+                                html.A("Tokenizer & prosody", href="/cosyvoice-3/tokenizer-prosody", className="top-nav-link"),
+                                theme_toggle,
+                            ],
+                            gap="lg",
+                        ),
                     ],
                     justify="space-between",
                     style={"flex": 1},
@@ -55,17 +56,11 @@ def get_app_shell() -> dmc.AppShell:
                     px={"base": "md", "sm": "xl"},
                 ),
             ),
-            nav.load_navbar(),
             dmc.AppShellMain(dash.page_container, className="app-main"),
             dcc.Location(id="url"),
         ],
-        header={"height": 76},
+        header={"height": 58},
         padding=0,
-        navbar={
-            "width": 268,
-            "breakpoint": "sm",
-            "collapsed": {"mobile": True},
-        },
         id="appshell",
     )
 

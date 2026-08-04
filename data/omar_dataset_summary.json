@@ -1,0 +1,277 @@
+{
+  "generated_at": "2026-08-02T02:27:01.329809+00:00",
+  "source_root": "/Users/mali/ai/sod-audio/processed/omar",
+  "methodology": {
+    "wpm": "count(words where type == 'word') / audio_duration_secs * 60",
+    "articulation_wpm": "timed word count / sum(word end - word start) * 60",
+    "tiers": "Low is below the 25th percentile; Medium is the 25th–75th percentile; High is above the 75th percentile.",
+    "outliers": "Outside Tukey fences (Q1 - 1.5×IQR, Q3 + 1.5×IQR)."
+  },
+  "corpus": {
+    "json_files_discovered": 8745,
+    "valid_clips": 8742,
+    "invalid_clips": 3,
+    "recording_sources": 170,
+    "total_hours": 66.298,
+    "wpm_eligible_hours": 66.29,
+    "total_words": 546134,
+    "mean_clip_seconds": 27.3,
+    "median_clip_seconds": 27.9,
+    "clips_20_to_30_seconds": 8167,
+    "clips_20_to_30_percentage": 93.42
+  },
+  "speaking_rate": {
+    "mean_wpm": 137.3,
+    "median_wpm": 137.7,
+    "std_wpm": 25.1,
+    "min_wpm": 2.9,
+    "max_wpm": 248.0,
+    "quantiles": {
+      "1": 73.7,
+      "5": 96.8,
+      "10": 106.2,
+      "25": 120.9,
+      "50": 137.7,
+      "75": 154.5,
+      "90": 168.5,
+      "95": 177.0,
+      "99": 192.3
+    },
+    "low_boundary_wpm": 120.9,
+    "high_boundary_wpm": 154.5,
+    "lower_outlier_fence_wpm": 70.3,
+    "upper_outlier_fence_wpm": 205.1,
+    "outlier_clips": 94,
+    "mean_articulation_wpm": 229.1,
+    "median_articulation_wpm": 229.1
+  },
+  "pauses": {
+    "median_interword_gap_seconds": 0.04,
+    "p90_interword_gap_seconds": 0.44,
+    "p95_interword_gap_seconds": 0.901,
+    "p99_interword_gap_seconds": 2.06,
+    "gaps_at_least_0_30": 70514,
+    "gaps_at_least_0_75": 33399,
+    "gaps_at_least_1_40": 13422
+  },
+  "transcription": {
+    "word_logprob_mean": -0.1997,
+    "word_logprob_median": -0.0757,
+    "words_below_minus_1_logprob": 14540,
+    "words_with_logprob": 546134
+  },
+  "audio": {
+    "matching_flac_files": 8745,
+    "audio_files_scanned": 8745,
+    "total_gib": 4.72,
+    "sample_rates": {
+      "24000": 8745
+    },
+    "channels": {
+      "1": 8745
+    },
+    "subtypes": {
+      "PCM_16": 8745
+    },
+    "formats": {
+      "FLAC": 8745
+    },
+    "mean_json_audio_duration_delta_seconds": 0.0,
+    "max_json_audio_duration_delta_seconds": 0.0
+  },
+  "tiers": [
+    {
+      "tier": "Low",
+      "clips": 2185,
+      "hours": 16.518,
+      "words": 104139,
+      "min_wpm": 2.9,
+      "median_wpm": 109.1,
+      "max_wpm": 120.8
+    },
+    {
+      "tier": "Medium",
+      "clips": 4376,
+      "hours": 33.156,
+      "words": 274185,
+      "min_wpm": 120.9,
+      "median_wpm": 137.7,
+      "max_wpm": 154.5
+    },
+    {
+      "tier": "High",
+      "clips": 2181,
+      "hours": 16.616,
+      "words": 167810,
+      "min_wpm": 154.6,
+      "median_wpm": 165.4,
+      "max_wpm": 248.0
+    }
+  ],
+  "languages": [
+    {
+      "language": "som",
+      "clips": 8742,
+      "hours": 66.29,
+      "median_wpm": 137.7
+    }
+  ],
+  "top_recordings_by_hours": [
+    {
+      "recording": "Fandhaal Kaarka asturnaanta waa mid dhamaado . I7pUCD67Iqs",
+      "clips": 128,
+      "hours": 0.984,
+      "words": 7502,
+      "median_wpm": 127.0
+    },
+    {
+      "recording": "Fandhaal Podcast Aragti Guud Nolosha wadamada khaliijka iyo jamhuuriyadaha 37rvPSlp0l4",
+      "clips": 130,
+      "hours": 0.961,
+      "words": 8111,
+      "median_wpm": 143.1
+    },
+    {
+      "recording": "Fandhaal Xaalka Muslimiinta ma ahaan doono siduu ahaa . 44xwULRtsCU",
+      "clips": 107,
+      "hours": 0.813,
+      "words": 6133,
+      "median_wpm": 127.3
+    },
+    {
+      "recording": "Fandhaal 8 Naseexo cumrigoodu yahay ka badan 1000 sano . _8xYudLbwuE",
+      "clips": 102,
+      "hours": 0.783,
+      "words": 6356,
+      "median_wpm": 139.1
+    },
+    {
+      "recording": "Baadiyaha Texas ilaa iyo saxaraha Muritaaniya waxaa la isku raacay xumaanta Modern Satate-ka jF-1CWl0BaM",
+      "clips": 100,
+      "hours": 0.777,
+      "words": 5933,
+      "median_wpm": 125.7
+    },
+    {
+      "recording": "Fandhaal Xageen ka bilaabaa Haddii aad dareemayso in aad dhiiqada ku jirto. SsDfyoVpvM4",
+      "clips": 99,
+      "hours": 0.76,
+      "words": 6620,
+      "median_wpm": 145.9
+    },
+    {
+      "recording": "Fandhaal Hijrada iyo qurbaha waa sunada ilaahay ee noolaha . -_kniaLwdy8",
+      "clips": 98,
+      "hours": 0.733,
+      "words": 6219,
+      "median_wpm": 141.1
+    },
+    {
+      "recording": "Fandhaal Podcast 79 Cadaab -124k",
+      "clips": 93,
+      "hours": 0.717,
+      "words": 4967,
+      "median_wpm": 118.8
+    },
+    {
+      "recording": "Hadaad 20 - 35 u dhaxayso ama aad ka baqayso dadaada inay waynaatay mowduucaan adigaa leh . jk4JCioAJ5A",
+      "clips": 91,
+      "hours": 0.696,
+      "words": 5102,
+      "median_wpm": 120.4
+    },
+    {
+      "recording": "Fandhaal Sir Cajiib ah kasbashada luuqad cusub . 7DCWPLWHpwM",
+      "clips": 89,
+      "hours": 0.682,
+      "words": 6139,
+      "median_wpm": 150.6
+    },
+    {
+      "recording": "Fandhaal Kadib duqaynta dooxa masiirka umadaan . ged5Emp4-uk",
+      "clips": 89,
+      "hours": 0.681,
+      "words": 5178,
+      "median_wpm": 126.3
+    },
+    {
+      "recording": "Fandhaal Podcast 38 Eber -130k",
+      "clips": 87,
+      "hours": 0.674,
+      "words": 5122,
+      "median_wpm": 124.4
+    },
+    {
+      "recording": "Fandhaal Dareenkaan waa sababta mushkiladaada oo dhan. pXcZ2KsNqqc",
+      "clips": 86,
+      "hours": 0.66,
+      "words": 5503,
+      "median_wpm": 142.6
+    },
+    {
+      "recording": "Fandhaal Podcast 88 Dib ugu laabo wax yaabaha aad rumaysantahay -120k",
+      "clips": 88,
+      "hours": 0.659,
+      "words": 5791,
+      "median_wpm": 147.9
+    },
+    {
+      "recording": "Fandhaal Ilaahay udaa asagaa xalline Hana ciyaarin kaalinta ilaahay . 9b3MX6ZH_Ik",
+      "clips": 86,
+      "hours": 0.657,
+      "words": 5535,
+      "median_wpm": 140.2
+    }
+  ],
+  "errors": [
+    {
+      "path": "/Users/mali/ai/sod-audio/processed/omar/Fandhaal Ilaahay udaa asagaa xalline Hana ciyaarin kaalinta ilaahay . 9b3MX6ZH_Ik/transcripts/0087.json",
+      "reason": "missing duration or timed words"
+    },
+    {
+      "path": "/Users/mali/ai/sod-audio/processed/omar/Galab wanaagsan waxaa la gaaray xilligii timirta . ZmTOagqQIY8/transcripts/0023.json",
+      "reason": "missing duration or timed words"
+    },
+    {
+      "path": "/Users/mali/ai/sod-audio/processed/omar/Istaag فإذا فرغت فانصب waligaa ha ahaan howl laaan 8Q760DQEjqI/transcripts/0024.json",
+      "reason": "missing duration or timed words"
+    }
+  ],
+  "punctuation_normalization": {
+    "accepted_count": 8112,
+    "alignment_mode_counts": {
+      "none": 216,
+      "strict": 8529
+    },
+    "arabic_containing_count": 361,
+    "arabic_containing_percentage": 4.128073184676958,
+    "audio_event_count": 131,
+    "average_insertions_per_record": 3.460034305317324,
+    "config_hash": "799436353ec7d2371eae0285fd60e5b749753d9ec3bb64a9b356b17137299485",
+    "failed_count": 0,
+    "gap_percentiles": {
+      "50": 0.040000000000000924,
+      "90": 0.44,
+      "95": 0.9000000000000021,
+      "99": 2.0589999999999975
+    },
+    "json_txt_pairing_mismatches": 0,
+    "json_txt_text_mismatches": 61,
+    "json_without_txt": 0,
+    "long_gap_count": 13054,
+    "mode": "write",
+    "negative_overlap_count": 1,
+    "punctuation_density_per_100_words": 5.537792533185942,
+    "records_with_at_least_one_insertion": 8112,
+    "review_manifest_count": 7111,
+    "review_status_count": 216,
+    "script_switch_count": 672,
+    "source_json_count": 8745,
+    "source_txt_count": 8745,
+    "total_proposed_commas": 20055,
+    "total_proposed_ellipses": 0,
+    "total_proposed_periods": 10203,
+    "txt_without_json": 0,
+    "unchanged_count": 417
+  }
+}
