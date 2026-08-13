@@ -99,14 +99,21 @@ def figure_block(number: str, title: str, text: str, figure: go.Figure) -> html.
     ], className="paper-figure")
 
 
-def sample_row(label: str, text: str, audio_file: str, image_file: str) -> html.Tr:
+def audio_cell(audio_file: str | None, label: str) -> html.Td:
+    if not audio_file:
+        return html.Td("—", className="pace-audio-cell pace-audio-empty")
+    return html.Td(
+        html.Audio(src=dash.get_asset_url(audio_file), controls=True, preload="metadata", **{"aria-label": label}),
+        className="pace-audio-cell",
+    )
+
+
+def pace_sample_row(text: str, slow: str | None, medium: str | None, fast: str | None) -> html.Tr:
     return html.Tr([
-        html.Th(label, scope="row"),
-        html.Td(html.Q(text), className="sample-text"),
-        html.Td([
-            html.Img(src=dash.get_asset_url(image_file), alt=f"Spectrogram for sample {label}", className="sample-spectrogram"),
-            html.Audio(src=dash.get_asset_url(audio_file), controls=True, preload="metadata"),
-        ], className="sample-audio"),
+        html.Th(html.Q(text), scope="row", className="pace-sample-text"),
+        audio_cell(slow, "Slow sample"),
+        audio_cell(medium, "Medium sample"),
+        audio_cell(fast, "Fast sample"),
     ])
 
 
@@ -129,16 +136,31 @@ def layout() -> html.Main:
             html.Li(html.A("Reference audio", href="#samples")),
             html.Li(html.A("Corpus and pace", href="#corpus")),
             html.Li(html.A("Data processing and cleaning", href="#processing")),
-            html.Li(html.A("Source variation", href="#variation")),
         ])], className="paper-toc"),
         html.Section([
             html.H2("1. Reference audio"),
-            html.P("The excerpts below are retained as direct listening references. The transcript is shown alongside each browser-playable audio sample."),
+            html.P("Each row is one Somali prompt rendered at the available pace conditions. Audio files are placed by their recorded filename suffix: slow, medium, or fast."),
             html.Div(html.Table([
-                html.Thead(html.Tr([html.Th("Sample"), html.Th("Transcript"), html.Th("Audio")])),
+                html.Thead(html.Tr([html.Th("Text"), html.Th("Slow"), html.Th("Medium"), html.Th("Fast")])),
                 html.Tbody([
-                    sample_row("00:09–00:53", "Warbixinno ka soo baxay dowladda UK ayaa sheegaya in, haddii carqaladaynta maraakiibta ee marinka Hormuz ay sii socoto illaa dhammaadka sanadkan, dhaqaalaha Britain uu sannadka dambe yeelan doono koboc aad u yar ama ku dhowaad aan wax koboc ah lahayn.", "gpt-compare-0-33.m4a", "gpt-compare-0-33-spectrogram.png"),
-                    sample_row("01:25–02:11", "Saraakiisha dowladda ayaa sheegay inay si joogto ah ugu diyaar garoobaan dhammaan xaaladaha suurtagalka ah, ayna tilmaameen in saadaashan koboca ay ku salaysan tahay xaalad ka sii xun tan hadda jirta.", "gpt-compare-33-end.m4a", "gpt-compare-33-end-spectrogram.png"),
+                    pace_sample_row(
+                        "Aanadii Negeeye waa buug waddo cusub u furaya bandhigga xikmadda iyo suugaanta soomaalida oo ilaa hadda si wayn la isugu soo tebin jirey tix ahaan.",
+     "audio/omar-adanni-slow.wav",
+                        "audio/omar-adanni-medium.wav",
+                        "audio/omar-adanni-fast.wav",
+                    ),
+                    pace_sample_row(
+                        "Waxay ahayd wax yar ka hor salaaddii Maqrib, markii Faarax gurigooda ay gabadh dhallinyaro ah oo wejigeeda qarinaysa albaabka soo garaacday.",
+                        "audio/omar-garaacday-slow.wav",
+                        "audio/omar-garaacday-medium.wav",
+                        "audio/omar-garaacday-fast.wav",
+                    ),
+                    pace_sample_row(
+                        "Hooyadii Dhool wax badan ma ay sugin ninkii wadku ka qaaday nin kale oo illawsiiya oo dhinaca gogosheeda bannaanaaday u buuxiya.",
+                        "audio/omar-hooyadii-slow.wav",
+                        "audio/omar-hooyadii-medium.wav",
+                        "audio/omar-hooyadii-fast.wav",
+                    ),
                 ]),
             ]), className="audio-table-wrap"),
         ], id="samples"),
@@ -149,11 +171,18 @@ def layout() -> html.Main:
                 f"The median experienced pace is {rates['median_wpm']:.1f} words per minute; {corpus['wpm_eligible_hours']:.2f} hours have usable timed-word data. "
                 f"The pace analysis uses total clip duration, so it includes pauses and hesitation rather than measuring articulation alone."
             ),
+            html.P([
+                "The project source corpus is downloaded from the private Hugging Face dataset ",
+                html.Code("levenberg/omar-somali-asr"),
+                ". The local derived training build is deliberately separate: it packages reviewed audio and punctuation-aware text for CosyVoice 3 while preserving an audit trail back to those source records.",
+            ]),
             figure_block("Figure 1.", "Distribution of experienced speaking pace.",
                          f"The middle half of clips falls between {rates['low_boundary_wpm']:.1f} and {rates['high_boundary_wpm']:.1f} WPM. "
                          f"The {rates['outlier_clips']} Tukey outliers remain review items rather than automatic pace labels.", wpm_distribution()),
             figure_block("Figure 2.", "Clip duration and speaking rate.",
                          f"{corpus['clips_20_to_30_percentage']:.2f}% of clips are in the 20–30 second target window. The plot exposes unusually short, long, or dense records for inspection.", duration_scatter()),
+            html.P("Speaking rate varies substantially across the largest recording folders. Corpus-level thresholds are useful descriptive references, but each clip is retained with its timing record so pace labels can be reviewed in context."),
+            figure_block("Figure 3.", "Within-source variation in speaking pace.", "Each box summarises the WPM distribution for one of the ten largest recording folders.", source_boxplot()),
         ], id="corpus"),
         html.Section([
             html.H2("3. Data processing and cleaning"),
@@ -167,18 +196,21 @@ def layout() -> html.Main:
                 f"Inter-word gaps of 0.30 seconds propose commas and gaps of 0.75 seconds propose periods, producing {punctuation['total_proposed_commas'] + punctuation['total_proposed_periods']:,} proposed marks across {punctuation['review_manifest_count']:,} auditable review records. "
                 f"The observed median gap is {pauses['median_interword_gap_seconds']:.2f} seconds; no SSML tags, pause tokens, or invented Somali words are introduced."
             ),
+            html.P(
+                "The resulting CosyVoice 3 training dataset, Omar punctuation + pace instruction dataset V1, pairs each included clip with a truthful natural-language pace instruction. "
+                "These instructions are training labels, not commands inferred at synthesis time: each one is assigned from the observed overall WPM for its source clip. "
+                "The derived dataset retains the punctuation-V1 transcript and original FLAC audio while adding the instruction, numeric WPM, and pace tier as explicit fields."
+            ),
             html.Table([
                 html.Tbody([
                     html.Tr([html.Th("Audio"), html.Td("Segment → denoise → loudness-normalise → mono 24 kHz PCM-16 FLAC")]),
                     html.Tr([html.Th("Text"), html.Td("Compare timed words to transcript → propose ordinary punctuation → human-review derived copy")]),
+                    html.Tr([html.Th("Slow · < 120.9 WPM"), html.Td("You are a helpful assistant. Speak slowly and deliberately.")]),
+                    html.Tr([html.Th("Medium · 120.9–154.5 WPM"), html.Td("You are a helpful assistant. Speak at a natural, moderate pace.")]),
+                    html.Tr([html.Th("Fast · > 154.5 WPM"), html.Td("You are a helpful assistant. Speak at a fast pace.")]),
                     html.Tr([html.Th("Provenance"), html.Td("Keep original source material immutable; version derived transcripts, manifests, and audits separately")]),
                 ])
             ], className="method-note"),
         ], id="processing"),
-        html.Section([
-            html.H2("4. Source variation"),
-            html.P("Speaking rate varies substantially across the largest recording folders. Corpus-level thresholds are useful descriptive references, but each clip is retained with its timing record so pace labels can be reviewed in context."),
-            figure_block("Figure 3.", "Within-source variation in speaking pace.", "Each box summarises the WPM distribution for one of the ten largest recording folders.", source_boxplot()),
-        ], id="variation"),
         html.Footer("Reproducibility · Generated from data/omar_wpm.csv and data/omar_dataset_summary.json by scripts/analyze_omar_dataset.py.", className="paper-footer"),
     ], className="github-paper"), className="single-page")

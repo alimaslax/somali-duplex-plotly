@@ -1487,7 +1487,7 @@ body {
 
 /* Single-page research paper */
 .single-page { background: #16171a; min-height: 100vh; color: #e6e7eb; }
-.single-page .github-paper { width: min(1120px, calc(100% - 48px)); margin: 0 auto; padding: 78px 0 110px; }
+.single-page .github-paper { width: min(1120px, calc(100% - 48px)); margin: 0 auto; padding: 64px 0 110px; }
 .single-page .paper-header { border-bottom: 1px solid rgba(255,255,255,.18); padding-bottom: 34px; text-align: center; }
 .single-page .paper-kicker, .single-page .figure-number { color: #aeb3bc; font: 600 11px/1.4 "SFMono-Regular", Consolas, monospace; letter-spacing: .12em; }
 .single-page h1, .single-page h2, .single-page h3 { color: #f0f1f3; font-family: Arial, sans-serif; letter-spacing: -.03em; }
@@ -1496,7 +1496,7 @@ body {
 .single-page h3 { margin: 0 0 5px; font-size: 16px; font-weight: 650; }
 .single-page p, .single-page td, .single-page th { color: #c3c6cd; font: 17px/1.7 Arial, sans-serif; }
 .single-page .paper-byline { margin: 0 0 27px; color: #aeb3bc; font-size: 14px; }
-.single-page .paper-abstract { max-width: 980px; margin: 0 auto; text-align: left; }
+.single-page .paper-abstract { max-width: none; margin: 0; text-align: left; }
 .single-page .paper-abstract strong { color: #f0f1f3; }
 .single-page .paper-toc { padding: 28px 0; border-bottom: 1px solid rgba(255,255,255,.13); color: #e6e7eb; }
 .single-page .paper-toc strong { font: 650 15px Arial, sans-serif; }
@@ -1506,13 +1506,13 @@ body {
 .single-page section > p { max-width: none; margin: 0 0 18px; }
 .single-page .audio-table-wrap { overflow-x: auto; border-top: 1px solid rgba(255,255,255,.24); }
 .single-page table { width: 100%; border-collapse: collapse; }
-.single-page .audio-table-wrap th, .single-page .audio-table-wrap td { padding: 19px 14px; border-bottom: 1px solid rgba(255,255,255,.15); text-align: left; vertical-align: top; }
+.single-page .audio-table-wrap th, .single-page .audio-table-wrap td { padding: 19px 14px; border-bottom: 1px solid rgba(255,255,255,.15); text-align: left; vertical-align: middle; }
 .single-page .audio-table-wrap thead th { color: #f0f1f3; font-size: 13px; font-weight: 650; }
-.single-page .audio-table-wrap tbody th { min-width: 100px; color: #e6e7eb; font-size: 13px; font-weight: 650; white-space: nowrap; }
-.single-page .sample-text { width: 46%; min-width: 310px; }
-.single-page .sample-text q { quotes: "“" "”"; }
-.single-page .sample-audio { width: 35%; min-width: 265px; }
-.single-page .sample-spectrogram { display: block; width: 100%; max-width: 320px; margin-bottom: 8px; }
+.single-page .audio-table-wrap tbody th { color: #e6e7eb; font-size: 14px; font-weight: 500; }
+.single-page .pace-sample-text { width: 42%; min-width: 330px; line-height: 1.6; }
+.single-page .pace-sample-text q { quotes: "“" "”"; }
+.single-page .pace-audio-cell { width: 19.33%; min-width: 210px; }
+.single-page .pace-audio-empty { color: #777d86; font-size: 14px; text-align: center !important; }
 .single-page audio { width: 100%; max-width: 320px; height: 36px; }
 .single-page .paper-figure { margin: 42px 0 0; border-top: 1px solid rgba(255,255,255,.16); padding-top: 16px; }
 .single-page .paper-figure figcaption { margin-bottom: 14px; }
