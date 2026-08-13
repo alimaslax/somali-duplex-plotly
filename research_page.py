@@ -1,0 +1,184 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import dash
+import pandas as pd
+import plotly.graph_objects as go
+from dash import dcc, html
+
+
+ROOT = Path(__file__).resolve().parent
+SUMMARY = json.loads((ROOT / "data" / "omar_dataset_summary.json").read_text(encoding="utf-8"))
+CLIPS = pd.read_csv(ROOT / "data" / "omar_wpm.csv")
+
+INK = "#e6e7eb"
+MUTED = "#a7abb4"
+GRID = "rgba(255,255,255,.12)"
+
+
+def figure_style(figure: go.Figure, height: int) -> go.Figure:
+    figure.update_layout(
+        height=height,
+        margin={"l": 54, "r": 18, "t": 22, "b": 52},
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font={"family": "Arial, sans-serif", "color": MUTED, "size": 12},
+        hoverlabel={"bgcolor": "#25262a", "font_color": INK, "bordercolor": "#565963"},
+        showlegend=False,
+    )
+    figure.update_xaxes(gridcolor=GRID, zeroline=False, linecolor=GRID)
+    figure.update_yaxes(gridcolor=GRID, zeroline=False, linecolor=GRID)
+    return figure
+
+
+def wpm_distribution() -> go.Figure:
+    rates = SUMMARY["speaking_rate"]
+    low, high = rates["low_boundary_wpm"], rates["high_boundary_wpm"]
+    figure = go.Figure(go.Histogram(
+        x=CLIPS["wpm"], xbins={"start": 0, "end": 250, "size": 5},
+        marker={"color": "#93a5b1", "line": {"width": 0}},
+        hovertemplate="%{x:.0f} WPM bin<br>%{y:,} clips<extra></extra>",
+    ))
+    figure.add_vrect(x0=0, x1=low, fillcolor="#7cc4cf", opacity=.12, line_width=0)
+    figure.add_vrect(x0=low, x1=high, fillcolor="#b8c0c9", opacity=.10, line_width=0)
+    figure.add_vrect(x0=high, x1=250, fillcolor="#edb27c", opacity=.12, line_width=0)
+    for boundary, label, anchor in ((low, "LOW", "right"), (high, "HIGH", "left")):
+        figure.add_vline(x=boundary, line_width=1.4, line_dash="dot", line_color="#d0d7dd")
+        figure.add_annotation(x=boundary, y=1, yref="paper", text=label, showarrow=False,
+                              yshift=14, xanchor=anchor,
+                              font={"family": "SFMono-Regular, Consolas, monospace", "size": 10, "color": "#d0d7dd"})
+    figure.update_xaxes(title="Overall speaking rate (words per minute)", range=[0, 250], dtick=25)
+    figure.update_yaxes(title="Clips")
+    return figure_style(figure, 410)
+
+
+def duration_scatter() -> go.Figure:
+    figure = go.Figure()
+    colours = {"Low": "#9fcbd3", "Medium": "#b7bbc3", "High": "#e9b47e"}
+    for tier in ("Low", "Medium", "High"):
+        subset = CLIPS[CLIPS["wpm_tier"] == tier]
+        figure.add_trace(go.Scattergl(
+            x=subset["duration_seconds"], y=subset["wpm"], mode="markers", name=tier,
+            marker={"size": 5, "color": colours[tier], "opacity": .48},
+            customdata=subset[["word_count", "recording", "utterance"]],
+            hovertemplate=(f"{tier} · %{{y:.1f}} WPM<br>%{{x:.1f}} sec · %{{customdata[0]}} words"
+                           "<br>%{customdata[1]} / %{customdata[2]}<extra></extra>"),
+        ))
+    figure.add_vrect(x0=20, x1=30, fillcolor="#d6e0e5", opacity=.07, line_width=0)
+    figure.update_layout(showlegend=True, legend={"orientation": "h", "y": 1.10, "x": 0})
+    figure.update_xaxes(title="Clip duration (seconds)")
+    figure.update_yaxes(title="Words per minute", range=[0, 260])
+    return figure_style(figure, 390)
+
+
+def source_boxplot() -> go.Figure:
+    figure = go.Figure()
+    for index, item in enumerate(SUMMARY["top_recordings_by_hours"][:10]):
+        recording = item["recording"]
+        values = CLIPS.loc[CLIPS["recording"] == recording, "wpm"]
+        name = recording[:42] + ("…" if len(recording) > 42 else "")
+        figure.add_trace(go.Box(
+            x=values, name=name, orientation="h", boxpoints=False,
+            line={"color": "#a9b5bf" if index % 2 else "#8ebfc8", "width": 1.2},
+            fillcolor="rgba(180, 195, 205, .08)", hovertemplate="%{x:.1f} WPM<extra>%{y}</extra>",
+        ))
+    figure.update_xaxes(title="Words per minute", range=[40, 220])
+    figure.update_yaxes(autorange="reversed", tickfont={"size": 10})
+    return figure_style(figure, 500)
+
+
+def figure_block(number: str, title: str, text: str, figure: go.Figure) -> html.Figure:
+    return html.Figure([
+        html.Figcaption([
+            html.H3([html.Span(number, className="figure-number"), title]),
+            html.P(text),
+        ]),
+        dcc.Graph(figure=figure, config={"displayModeBar": False, "responsive": True}),
+    ], className="paper-figure")
+
+
+def sample_row(label: str, text: str, audio_file: str, image_file: str) -> html.Tr:
+    return html.Tr([
+        html.Th(label, scope="row"),
+        html.Td(html.Q(text), className="sample-text"),
+        html.Td([
+            html.Img(src=dash.get_asset_url(image_file), alt=f"Spectrogram for sample {label}", className="sample-spectrogram"),
+            html.Audio(src=dash.get_asset_url(audio_file), controls=True, preload="metadata"),
+        ], className="sample-audio"),
+    ])
+
+
+def layout() -> html.Main:
+    corpus = SUMMARY["corpus"]
+    rates = SUMMARY["speaking_rate"]
+    pauses = SUMMARY["pauses"]
+    audio = SUMMARY["audio"]
+    punctuation = SUMMARY["punctuation_normalization"]
+    return html.Main(html.Article([
+        html.Header([
+            html.H1("Somali Duplex"),
+            html.P([
+                html.Strong("Abstract. "),
+                f"This report documents a complete scan of {corpus['json_files_discovered']:,} transcript records from the Omar corpus. "
+                "It treats speech pace, timing, technical audio compliance, and transcript-derived punctuation as inspectable evidence for Somali text-to-speech training."
+            ], className="paper-abstract"),
+        ], className="paper-header"),
+        html.Nav([html.Strong("Contents"), html.Ul([
+            html.Li(html.A("Reference audio", href="#samples")),
+            html.Li(html.A("Corpus and pace", href="#corpus")),
+            html.Li(html.A("Data processing and cleaning", href="#processing")),
+            html.Li(html.A("Source variation", href="#variation")),
+        ])], className="paper-toc"),
+        html.Section([
+            html.H2("1. Reference audio"),
+            html.P("The excerpts below are retained as direct listening references. The transcript is shown alongside each browser-playable audio sample."),
+            html.Div(html.Table([
+                html.Thead(html.Tr([html.Th("Sample"), html.Th("Transcript"), html.Th("Audio")])),
+                html.Tbody([
+                    sample_row("00:09–00:53", "Warbixinno ka soo baxay dowladda UK ayaa sheegaya in, haddii carqaladaynta maraakiibta ee marinka Hormuz ay sii socoto illaa dhammaadka sanadkan, dhaqaalaha Britain uu sannadka dambe yeelan doono koboc aad u yar ama ku dhowaad aan wax koboc ah lahayn.", "gpt-compare-0-33.m4a", "gpt-compare-0-33-spectrogram.png"),
+                    sample_row("01:25–02:11", "Saraakiisha dowladda ayaa sheegay inay si joogto ah ugu diyaar garoobaan dhammaan xaaladaha suurtagalka ah, ayna tilmaameen in saadaashan koboca ay ku salaysan tahay xaalad ka sii xun tan hadda jirta.", "gpt-compare-33-end.m4a", "gpt-compare-33-end-spectrogram.png"),
+                ]),
+            ]), className="audio-table-wrap"),
+        ], id="samples"),
+        html.Section([
+            html.H2("2. Corpus and pace"),
+            html.P(
+                f"The processed corpus contains {corpus['total_hours']:.2f} hours across {corpus['valid_clips']:,} clips from {corpus['recording_sources']:,} recording folders. "
+                f"The median experienced pace is {rates['median_wpm']:.1f} words per minute; {corpus['wpm_eligible_hours']:.2f} hours have usable timed-word data. "
+                f"The pace analysis uses total clip duration, so it includes pauses and hesitation rather than measuring articulation alone."
+            ),
+            figure_block("Figure 1.", "Distribution of experienced speaking pace.",
+                         f"The middle half of clips falls between {rates['low_boundary_wpm']:.1f} and {rates['high_boundary_wpm']:.1f} WPM. "
+                         f"The {rates['outlier_clips']} Tukey outliers remain review items rather than automatic pace labels.", wpm_distribution()),
+            figure_block("Figure 2.", "Clip duration and speaking rate.",
+                         f"{corpus['clips_20_to_30_percentage']:.2f}% of clips are in the 20–30 second target window. The plot exposes unusually short, long, or dense records for inspection.", duration_scatter()),
+        ], id="corpus"),
+        html.Section([
+            html.H2("3. Data processing and cleaning"),
+            html.P(
+                "The source recordings are segmented with Silero VAD into coherent speech units, then denoised with DeepFilterNet 3 and loudness-normalised in a local batch workflow. "
+                f"Published clips are mono 24 kHz, 16-bit PCM FLAC: all {audio['audio_files_scanned']:,} matched files meet this contract, and their JSON and FLAC durations differ by at most {audio['max_json_audio_duration_delta_seconds']:.4f} seconds. "
+                "Temporary segmentation WAV files are not included in the published corpus."
+            ),
+            html.P(
+                f"Transcript processing preserves the source text and treats timing as evidence. Timed lexical words are compared with the canonical transcript before punctuation is proposed; mismatches are review flags. "
+                f"Inter-word gaps of 0.30 seconds propose commas and gaps of 0.75 seconds propose periods, producing {punctuation['total_proposed_commas'] + punctuation['total_proposed_periods']:,} proposed marks across {punctuation['review_manifest_count']:,} auditable review records. "
+                f"The observed median gap is {pauses['median_interword_gap_seconds']:.2f} seconds; no SSML tags, pause tokens, or invented Somali words are introduced."
+            ),
+            html.Table([
+                html.Tbody([
+                    html.Tr([html.Th("Audio"), html.Td("Segment → denoise → loudness-normalise → mono 24 kHz PCM-16 FLAC")]),
+                    html.Tr([html.Th("Text"), html.Td("Compare timed words to transcript → propose ordinary punctuation → human-review derived copy")]),
+                    html.Tr([html.Th("Provenance"), html.Td("Keep original source material immutable; version derived transcripts, manifests, and audits separately")]),
+                ])
+            ], className="method-note"),
+        ], id="processing"),
+        html.Section([
+            html.H2("4. Source variation"),
+            html.P("Speaking rate varies substantially across the largest recording folders. Corpus-level thresholds are useful descriptive references, but each clip is retained with its timing record so pace labels can be reviewed in context."),
+            figure_block("Figure 3.", "Within-source variation in speaking pace.", "Each box summarises the WPM distribution for one of the ten largest recording folders.", source_boxplot()),
+        ], id="variation"),
+        html.Footer("Reproducibility · Generated from data/omar_wpm.csv and data/omar_dataset_summary.json by scripts/analyze_omar_dataset.py.", className="paper-footer"),
+    ], className="github-paper"), className="single-page")

@@ -1,29 +1,11 @@
-import dash
 import dash_mantine_components as dmc
-from dash import dcc, html
-from dash_iconify import DashIconify
+from dash import html
 
+import research_page
 import utils.consts as consts
 
 
 def get_app_shell() -> dmc.AppShell:
-    theme_toggle = dmc.Switch(
-        offLabel=DashIconify(
-            icon="radix-icons:sun",
-            width=15,
-            color=dmc.DEFAULT_THEME["colors"]["yellow"][8],
-        ),
-        onLabel=DashIconify(
-            icon="radix-icons:moon",
-            width=15,
-            color=dmc.DEFAULT_THEME["colors"]["blue"][6],
-        ),
-        id="color-scheme-toggle",
-        persistence=True,
-        color="gray",
-        checked=True,
-    )
-
     app_shell = dmc.AppShell(
         [
             dmc.AppShellHeader(
@@ -31,24 +13,14 @@ def get_app_shell() -> dmc.AppShell:
                     [
                         dmc.Group(
                             [
-                                html.Div("SD", className="brand-mark"),
                                 dmc.Title(
                                     consts.WEBSITE_TITLE,
                                     className="main-title",
                                 ),
-                                html.Span("RESEARCH NOTES", className="header-kicker"),
+                                html.Span("RESEARCH PAPER", className="header-kicker"),
                             ]
                         ),
-                        dmc.Group(
-                            [
-                                html.A("Home", href="/", className="top-nav-link"),
-                                html.A("Dataset", href="/dataset", className="top-nav-link"),
-                                html.A("CosyVoice 3", href="/cosyvoice-3", className="top-nav-link"),
-                                html.A("Tokenizer & prosody", href="/cosyvoice-3/tokenizer-prosody", className="top-nav-link"),
-                                theme_toggle,
-                            ],
-                            gap="lg",
-                        ),
+                        html.Span("Omar corpus · 2026", className="header-kicker"),
                     ],
                     justify="space-between",
                     style={"flex": 1},
@@ -56,8 +28,7 @@ def get_app_shell() -> dmc.AppShell:
                     px={"base": "md", "sm": "xl"},
                 ),
             ),
-            dmc.AppShellMain(dash.page_container, className="app-main"),
-            dcc.Location(id="url"),
+            dmc.AppShellMain(research_page.layout(), className="app-main"),
         ],
         header={"height": 58},
         padding=0,

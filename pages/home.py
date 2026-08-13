@@ -54,11 +54,14 @@ def layout(**kwargs) -> html.Main:
                 html.Section(
                     [
                         html.H2("1. Reference audio"),
-                        html.P("Two adjacent excerpts from a native Somali recording. Spectrograms and controls remain available as direct research evidence."),
+                        html.Blockquote(
+                            "Warbixinno ka soo baxay dowladda UK ayaa sheegaya in, haddii carqaladaynta maraakiibta ee marinka Hormuz ay sii socoto illaa dhammaadka sanadkan, dhaqaalaha Britain uu sannadka dambe yeelan doono koboc aad u yar ama ku dhowaad aan wax koboc ah lahayn. Saraakiisha Wasaaradda Maaliyadda Ingiriiska ayaa arrintan ku sheegay warbixin loo gudbiyay Ra’iisul Wasaaraha. Sida laga soo xigtay ilo ka tirsan dowladda, qaab-dhismeedka saadaasha gudaha ee Wasaaradda Maaliyadda ayaa muujinaya in koboca wax-soo-saarka guud ee dalka, GDP-ga UK, uu hoos u dhici karo ilaa eber dhibic saddex boqolkiiba sannadka laba kun iyo toddoba iyo labaatan. Saraakiisha dowladda ayaa sheegay inay si joogto ah ugu diyaar garoobaan dhammaan xaaladaha suurtagalka ah, ayna tilmaameen in saadaashan koboca ay ku salaysan tahay xaalad ka sii xun tan hadda jirta. Warbixintan ayaa soo baxday xilli dhaqaalaha Britain uu horeyba u wajahayo koboc xaddidan. Xafiiska Tirakoobka Qaranka ee UK ayaa la filayaa inuu dhowaan ku dhawaaqo in wax-soo-saarka guud ee dalka, GDP-ga, uusan wax koboc ah samayn bishii Juun.",
+                            className="reference-audio-quote",
+                        ),
                         html.Div(
                             [
-                                audio_clip("00:00–00:33", "33 seconds", "gpt-compare-0-33.m4a", "gpt-compare-0-33-spectrogram.png"),
-                                audio_clip("00:33–00:54.97", "22 seconds", "gpt-compare-33-end.m4a", "gpt-compare-33-end-spectrogram.png"),
+                                audio_clip("00:09–00:53", "44 seconds", "gpt-compare-0-33.m4a", "gpt-compare-0-33-spectrogram.png"),
+                                audio_clip("01:25–02:11", "46 seconds", "gpt-compare-33-end.m4a", "gpt-compare-33-end-spectrogram.png"),
                             ],
                             className="audio-comparison",
                         ),
