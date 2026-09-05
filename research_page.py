@@ -1,216 +1,116 @@
 from __future__ import annotations
 
 import json
+import statistics
+from collections import defaultdict
 from pathlib import Path
 
 import dash
-import pandas as pd
 import plotly.graph_objects as go
 from dash import dcc, html
 
-
 ROOT = Path(__file__).resolve().parent
-SUMMARY = json.loads((ROOT / "data" / "omar_dataset_summary.json").read_text(encoding="utf-8"))
-CLIPS = pd.read_csv(ROOT / "data" / "omar_wpm.csv")
-
-INK = "#e6e7eb"
-MUTED = "#a7abb4"
-GRID = "rgba(255,255,255,.12)"
+AUDIT = [json.loads(line) for line in (ROOT / "data" / "speaker_audit.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+COLORS = {"ink": "#edf5f2", "muted": "#9aada8", "grid": "rgba(184,235,215,.13)", "cyan": "#79e2cf", "lime": "#c8ef79", "coral": "#ff9a73", "violet": "#a99bff"}
 
 
-def figure_style(figure: go.Figure, height: int) -> go.Figure:
-    figure.update_layout(
-        height=height,
-        margin={"l": 54, "r": 18, "t": 22, "b": 52},
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font={"family": "Arial, sans-serif", "color": MUTED, "size": 12},
-        hoverlabel={"bgcolor": "#25262a", "font_color": INK, "bordercolor": "#565963"},
-        showlegend=False,
-    )
-    figure.update_xaxes(gridcolor=GRID, zeroline=False, linecolor=GRID)
-    figure.update_yaxes(gridcolor=GRID, zeroline=False, linecolor=GRID)
+def group_name(item: dict) -> str:
+    return item["file"].split("/", 1)[0]
+
+
+def balance(item: dict) -> float:
+    values = list(item["speaker_seconds"].values())
+    return min(values) / max(values)
+
+
+GROUPS: dict[str, list[dict]] = defaultdict(list)
+for record in AUDIT:
+    GROUPS[group_name(record)].append(record)
+
+
+def style(figure: go.Figure, height: int = 390) -> go.Figure:
+    figure.update_layout(height=height, margin={"l": 48, "r": 22, "t": 28, "b": 48}, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font={"family": "Avenir Next, Avenir, sans-serif", "color": COLORS["muted"], "size": 12}, hoverlabel={"bgcolor": "#10201e", "font_color": COLORS["ink"], "bordercolor": COLORS["cyan"]}, showlegend=False)
+    figure.update_xaxes(gridcolor=COLORS["grid"], zeroline=False, linecolor=COLORS["grid"])
+    figure.update_yaxes(gridcolor=COLORS["grid"], zeroline=False, linecolor=COLORS["grid"])
     return figure
 
 
-def wpm_distribution() -> go.Figure:
-    rates = SUMMARY["speaking_rate"]
-    low, high = rates["low_boundary_wpm"], rates["high_boundary_wpm"]
-    figure = go.Figure(go.Histogram(
-        x=CLIPS["wpm"], xbins={"start": 0, "end": 250, "size": 5},
-        marker={"color": "#93a5b1", "line": {"width": 0}},
-        hovertemplate="%{x:.0f} WPM bin<br>%{y:,} clips<extra></extra>",
-    ))
-    figure.add_vrect(x0=0, x1=low, fillcolor="#7cc4cf", opacity=.12, line_width=0)
-    figure.add_vrect(x0=low, x1=high, fillcolor="#b8c0c9", opacity=.10, line_width=0)
-    figure.add_vrect(x0=high, x1=250, fillcolor="#edb27c", opacity=.12, line_width=0)
-    for boundary, label, anchor in ((low, "LOW", "right"), (high, "HIGH", "left")):
-        figure.add_vline(x=boundary, line_width=1.4, line_dash="dot", line_color="#d0d7dd")
-        figure.add_annotation(x=boundary, y=1, yref="paper", text=label, showarrow=False,
-                              yshift=14, xanchor=anchor,
-                              font={"family": "SFMono-Regular, Consolas, monospace", "size": 10, "color": "#d0d7dd"})
-    figure.update_xaxes(title="Overall speaking rate (words per minute)", range=[0, 250], dtick=25)
-    figure.update_yaxes(title="Clips")
-    return figure_style(figure, 410)
+def collection_chart() -> go.Figure:
+    names = list(GROUPS)
+    hours = [sum(x["duration_seconds"] for x in GROUPS[name]) / 3600 for name in names]
+    fig = go.Figure(go.Bar(x=names, y=[len(GROUPS[name]) for name in names], marker_color=[COLORS["cyan"], COLORS["lime"], COLORS["violet"]], customdata=hours, hovertemplate="%{x}<br>%{y} clips<br>%{customdata:.2f} raw WAV hours<extra></extra>"))
+    fig.update_xaxes(title="Source collection")
+    fig.update_yaxes(title="Accepted dual-speaker clips")
+    return style(fig)
 
 
-def duration_scatter() -> go.Figure:
-    figure = go.Figure()
-    colours = {"Low": "#9fcbd3", "Medium": "#b7bbc3", "High": "#e9b47e"}
-    for tier in ("Low", "Medium", "High"):
-        subset = CLIPS[CLIPS["wpm_tier"] == tier]
-        figure.add_trace(go.Scattergl(
-            x=subset["duration_seconds"], y=subset["wpm"], mode="markers", name=tier,
-            marker={"size": 5, "color": colours[tier], "opacity": .48},
-            customdata=subset[["word_count", "recording", "utterance"]],
-            hovertemplate=(f"{tier} · %{{y:.1f}} WPM<br>%{{x:.1f}} sec · %{{customdata[0]}} words"
-                           "<br>%{customdata[1]} / %{customdata[2]}<extra></extra>"),
-        ))
-    figure.add_vrect(x0=20, x1=30, fillcolor="#d6e0e5", opacity=.07, line_width=0)
-    figure.update_layout(showlegend=True, legend={"orientation": "h", "y": 1.10, "x": 0})
-    figure.update_xaxes(title="Clip duration (seconds)")
-    figure.update_yaxes(title="Words per minute", range=[0, 260])
-    return figure_style(figure, 390)
+def balance_chart() -> go.Figure:
+    values = [balance(x) for x in AUDIT]
+    fig = go.Figure(go.Histogram(x=values, xbins={"start": 0, "end": 1, "size": .05}, marker={"color": COLORS["lime"], "line": {"width": 0}}, hovertemplate="Balance %{x:.2f}<br>%{y} clips<extra></extra>"))
+    median = statistics.median(values)
+    fig.add_vline(x=median, line_color=COLORS["coral"], line_width=2, line_dash="dot")
+    fig.add_annotation(x=median, y=1, yref="paper", text=f"median {median:.2f}", showarrow=False, yshift=14, font={"color": COLORS["coral"], "size": 11})
+    fig.update_xaxes(title="Minor-speaker seconds ÷ major-speaker seconds", range=[0, 1])
+    fig.update_yaxes(title="Clips")
+    return style(fig)
 
 
-def source_boxplot() -> go.Figure:
-    figure = go.Figure()
-    for index, item in enumerate(SUMMARY["top_recordings_by_hours"][:10]):
-        recording = item["recording"]
-        values = CLIPS.loc[CLIPS["recording"] == recording, "wpm"]
-        name = recording[:42] + ("…" if len(recording) > 42 else "")
-        figure.add_trace(go.Box(
-            x=values, name=name, orientation="h", boxpoints=False,
-            line={"color": "#a9b5bf" if index % 2 else "#8ebfc8", "width": 1.2},
-            fillcolor="rgba(180, 195, 205, .08)", hovertemplate="%{x:.1f} WPM<extra>%{y}</extra>",
-        ))
-    figure.update_xaxes(title="Words per minute", range=[40, 220])
-    figure.update_yaxes(autorange="reversed", tickfont={"size": 10})
-    return figure_style(figure, 500)
+def evidence_chart() -> go.Figure:
+    x = [list(item["speaker_seconds"].values())[0] for item in AUDIT]
+    y = [list(item["speaker_seconds"].values())[1] for item in AUDIT]
+    fig = go.Figure(go.Scattergl(x=x, y=y, mode="markers", marker={"color": COLORS["cyan"], "size": 7, "opacity": .55}, text=[x["file"] for x in AUDIT], hovertemplate="%{text}<br>speaker 00: %{x:.1f}s<br>speaker 01: %{y:.1f}s<extra></extra>"))
+    fig.add_shape(type="line", x0=0, y0=0, x1=30, y1=30, line={"color": COLORS["coral"], "dash": "dot"})
+    fig.update_xaxes(title="SPEAKER_00 seconds", range=[0, 32])
+    fig.update_yaxes(title="SPEAKER_01 seconds", range=[0, 32], scaleanchor="x", scaleratio=1)
+    return style(fig, 430)
 
 
-def figure_block(number: str, title: str, text: str, figure: go.Figure) -> html.Figure:
-    return html.Figure([
-        html.Figcaption([
-            html.H3([html.Span(number, className="figure-number"), title]),
-            html.P(text),
-        ]),
-        dcc.Graph(figure=figure, config={"displayModeBar": False, "responsive": True}),
-    ], className="paper-figure")
+def turns_chart() -> go.Figure:
+    fig = go.Figure(go.Histogram(x=[sum(x["speaker_turns"].values()) for x in AUDIT], xbins={"start": 0, "end": 30, "size": 1}, marker={"color": COLORS["violet"], "line": {"width": 0}}, hovertemplate="%{x} turns<br>%{y} clips<extra></extra>"))
+    fig.update_xaxes(title="Detected speaker turns per clip")
+    fig.update_yaxes(title="Clips")
+    return style(fig)
 
 
-def audio_cell(audio_file: str | None, label: str) -> html.Td:
-    if not audio_file:
-        return html.Td("—", className="pace-audio-cell pace-audio-empty")
-    return html.Td(
-        html.Audio(src=dash.get_asset_url(audio_file), controls=True, preload="metadata", **{"aria-label": label}),
-        className="pace-audio-cell",
-    )
+def model_chart() -> go.Figure:
+    fig = go.Figure(go.Sankey(arrangement="snap", node={"label": ["IN", "STT", "LLM", "TTS", "OUT"], "pad": 28, "thickness": 20, "color": [COLORS["cyan"], COLORS["lime"], COLORS["violet"], COLORS["coral"], COLORS["cyan"]]}, link={"source": [0, 1, 2, 3], "target": [1, 2, 3, 4], "value": [10, 9, 8, 8], "color": ["rgba(121,226,207,.28)", "rgba(200,239,121,.28)", "rgba(169,155,255,.28)", "rgba(255,154,115,.28)"]}, hoverinfo="none"))
+    fig.update_layout(height=255, margin={"l": 8, "r": 8, "t": 12, "b": 12}, paper_bgcolor="rgba(0,0,0,0)", font={"color": COLORS["ink"], "size": 12})
+    return fig
 
 
-def pace_sample_row(text: str, slow: str | None, medium: str | None, fast: str | None) -> html.Tr:
-    return html.Tr([
-        html.Th(html.Q(text), scope="row", className="pace-sample-text"),
-        audio_cell(slow, "Slow sample"),
-        audio_cell(medium, "Medium sample"),
-        audio_cell(fast, "Fast sample"),
-    ])
+def metric(label: str, value: str, detail: str) -> html.Div:
+    return html.Div([html.Span(label), html.Strong(value), html.P(detail)], className="nemotron-metric")
+
+
+def chart(title: str, detail: str, fig: go.Figure) -> html.Section:
+    return html.Section([html.Div([html.H3(title), html.P(detail)], className="chart-copy"), dcc.Graph(figure=fig, config={"displayModeBar": False, "responsive": True})], className="nemotron-chart")
 
 
 def layout() -> html.Main:
-    corpus = SUMMARY["corpus"]
-    rates = SUMMARY["speaking_rate"]
-    pauses = SUMMARY["pauses"]
-    audio = SUMMARY["audio"]
-    punctuation = SUMMARY["punctuation_normalization"]
-    return html.Main(html.Article([
-        html.Header([
-            html.H1("Somali Duplex"),
-            html.P([
-                html.Strong("Abstract. "),
-                f"This report documents a complete scan of {corpus['json_files_discovered']:,} transcript records from the Omar corpus. "
-                "It treats speech pace, timing, technical audio compliance, and transcript-derived punctuation as inspectable evidence for Somali text-to-speech training."
-            ], className="paper-abstract"),
-        ], className="paper-header"),
-        html.Nav([html.Strong("Contents"), html.Ul([
-            html.Li(html.A("Reference audio", href="#samples")),
-            html.Li(html.A("Corpus and pace", href="#corpus")),
-            html.Li(html.A("Data processing and cleaning", href="#processing")),
-        ])], className="paper-toc"),
+    total_hours = sum(x["duration_seconds"] for x in AUDIT) / 3600
+    speaker_hours = sum(sum(x["speaker_seconds"].values()) for x in AUDIT) / 3600
+    total_turns = sum(sum(x["speaker_turns"].values()) for x in AUDIT)
+    samples = [("Ubax", "ubax-0053.wav", "42.4 sec · 25.3s / 17.5s speaker evidence"), ("Dhaxal", "dhaxal-0016.wav", "28.2 sec · 13.0s / 10.0s speaker evidence"), ("Qalbiga", "qalbiga-0135.wav", "29.0 sec · 14.7s / 11.8s speaker evidence")]
+    return html.Main([
         html.Section([
-            html.H2("1. Reference audio"),
-            html.P("Each row is one Somali prompt rendered at the available pace conditions. Audio files are placed by their recorded filename suffix: slow, medium, or fast."),
-            html.Div(html.Table([
-                html.Thead(html.Tr([html.Th("Text"), html.Th("Slow"), html.Th("Medium"), html.Th("Fast")])),
-                html.Tbody([
-                    pace_sample_row(
-                        "Aanadii Negeeye waa buug waddo cusub u furaya bandhigga xikmadda iyo suugaanta soomaalida oo ilaa hadda si wayn la isugu soo tebin jirey tix ahaan.",
-     "audio/omar-adanni-slow.wav",
-                        "audio/omar-adanni-medium.wav",
-                        "audio/omar-adanni-fast.wav",
-                    ),
-                    pace_sample_row(
-                        "Waxay ahayd wax yar ka hor salaaddii Maqrib, markii Faarax gurigooda ay gabadh dhallinyaro ah oo wejigeeda qarinaysa albaabka soo garaacday.",
-                        "audio/omar-garaacday-slow.wav",
-                        "audio/omar-garaacday-medium.wav",
-                        "audio/omar-garaacday-fast.wav",
-                    ),
-                    pace_sample_row(
-                        "Hooyadii Dhool wax badan ma ay sugin ninkii wadku ka qaaday nin kale oo illawsiiya oo dhinaca gogosheeda bannaanaaday u buuxiya.",
-                        "audio/omar-hooyadii-slow.wav",
-                        "audio/omar-hooyadii-medium.wav",
-                        "audio/omar-hooyadii-fast.wav",
-                    ),
-                ]),
-            ]), className="audio-table-wrap"),
-        ], id="samples"),
+            html.Div([html.Div("SOMALI DUPLEX / NEMOTRON VOICECHAT", className="signal-label"), html.H1(["Train toward ", html.Em("duplex"), " conversation—not just cleaner speech."]), html.P("This workspace follows the preparation path for a Somali conversational voice stack: auditable two-speaker WAV clips first, then transcripts, turn pairing, and model adaptation. It replaces the former speed-tier corpus story with evidence that matters for interruption-aware dialogue.", className="nemotron-lede"), html.Div([html.Span("24 kHz PCM WAV"), html.Span("exactly 2 speakers"), html.Span("629 accepted clips"), html.Span("speaker audit attached")], className="nemotron-tags")], className="nemotron-hero-copy"),
+            html.Div([html.Div("MODEL PATH", className="signal-label"), dcc.Graph(figure=model_chart(), config={"displayModeBar": False, "responsive": True}), html.P(["NVIDIA's NeMo implementation describes Nemotron VoiceChat as an end-to-end duplex speech-to-speech model: a duplex STT model paired with an autoregressive speech decoder. ", html.A("Read the implementation", href="https://github.com/NVIDIA-NeMo/Speech/blob/main/nemo/collections/speechlm2/models/nemotron_voicechat.py", target="_blank")], className="architecture-note")], className="architecture-card")], className="nemotron-hero"),
+        html.Section([metric("AUDITED CLIPS", f"{len(AUDIT):,}", "Every retained clip reports two speakers."), metric("RAW WAV TIME", f"{total_hours:.2f} h", "Mono, 24 kHz, 16-bit PCM."), metric("ATTRIBUTED SPEECH", f"{speaker_hours:.2f} h", "Sum of diarized speaker-time evidence."), metric("SPEAKER TURNS", f"{total_turns:,}", "Observed turn changes across accepted clips.")], className="nemotron-metrics"),
+        html.Section([html.Div([html.Div("CORPUS EVIDENCE", className="signal-label"), html.H2("What the current dataset actually gives the model team."), html.P("The charts are computed from the filtered speaker_audit.jsonl—not inherited transcript speed labels.")], className="section-heading"), html.Div([chart("Collection coverage", "Accepted dual-speaker clips by source collection.", collection_chart()), chart("Speaker-time balance", "Near 1.0 means both speakers have similar attributed time.", balance_chart()), chart("Per-clip speaker evidence", "Each point is one candidate; the diagonal marks equal time.", evidence_chart()), chart("Turn density", "A view of conversational alternation rather than pace tiers.", turns_chart())], className="nemotron-chart-grid")], className="nemotron-section"),
+        html.Section([html.Div([html.Div("WAV SPOT CHECKS", className="signal-label"), html.H2("Listen to the records behind the charts.")], className="section-heading"), html.Div([html.Figure([html.Figcaption([html.Strong(name), html.Span(detail)]), html.Audio(src=dash.get_asset_url(f"samples/{filename}"), controls=True, preload="metadata")], className="nemotron-audio") for name, filename, detail in samples], className="nemotron-audio-grid")], className="nemotron-section"),
+        html.Section([html.Div([html.Div("TRAINING READINESS", className="signal-label"), html.H2("The next training gate is semantic alignment, not another audio-speed label.")], className="section-heading"), html.Div([html.Article([html.Span("01"), html.H3("Ready now"), html.P("Use the WAVs and diarization audit for acoustic inspection, clipping checks, speaker-balance sampling, and evaluation-fixture design.")]), html.Article([html.Span("02"), html.H3("Required before supervised duplex tuning"), html.P("Add reviewed Somali transcripts, speaker/turn order, and paired conversational context. This audit alone does not supply response targets.")]), html.Article([html.Span("03"), html.H3("Measure the model honestly"), html.P("Track streaming transcription, response quality, codec/audio quality, interruption behavior, latency, and Somali listener review on held-out conversations.")])], className="readiness-grid")], className="nemotron-section readiness-section"),
         html.Section([
-            html.H2("2. Corpus and pace"),
-            html.P(
-                f"The processed corpus contains {corpus['total_hours']:.2f} hours across {corpus['valid_clips']:,} clips from {corpus['recording_sources']:,} recording folders. "
-                f"The median experienced pace is {rates['median_wpm']:.1f} words per minute; {corpus['wpm_eligible_hours']:.2f} hours have usable timed-word data. "
-                f"The pace analysis uses total clip duration, so it includes pauses and hesitation rather than measuring articulation alone."
-            ),
-            html.P([
-                "The project source corpus is downloaded from the private Hugging Face dataset ",
-                html.Code("levenberg/omar-somali-asr"),
-                ". The local derived training build is deliberately separate: it packages reviewed audio and punctuation-aware text for CosyVoice 3 while preserving an audit trail back to those source records.",
-            ]),
-            figure_block("Figure 1.", "Distribution of experienced speaking pace.",
-                         f"The middle half of clips falls between {rates['low_boundary_wpm']:.1f} and {rates['high_boundary_wpm']:.1f} WPM. "
-                         f"The {rates['outlier_clips']} Tukey outliers remain review items rather than automatic pace labels.", wpm_distribution()),
-            figure_block("Figure 2.", "Clip duration and speaking rate.",
-                         f"{corpus['clips_20_to_30_percentage']:.2f}% of clips are in the 20–30 second target window. The plot exposes unusually short, long, or dense records for inspection.", duration_scatter()),
-            html.P("Speaking rate varies substantially across the largest recording folders. Corpus-level thresholds are useful descriptive references, but each clip is retained with its timing record so pace labels can be reviewed in context."),
-            figure_block("Figure 3.", "Within-source variation in speaking pace.", "Each box summarises the WPM distribution for one of the ten largest recording folders.", source_boxplot()),
-        ], id="corpus"),
-        html.Section([
-            html.H2("3. Data processing and cleaning"),
-            html.P(
-                "The source recordings are segmented with Silero VAD into coherent speech units, then denoised with DeepFilterNet 3 and loudness-normalised in a local batch workflow. "
-                f"Published clips are mono 24 kHz, 16-bit PCM FLAC: all {audio['audio_files_scanned']:,} matched files meet this contract, and their JSON and FLAC durations differ by at most {audio['max_json_audio_duration_delta_seconds']:.4f} seconds. "
-                "Temporary segmentation WAV files are not included in the published corpus."
-            ),
-            html.P(
-                f"Transcript processing preserves the source text and treats timing as evidence. Timed lexical words are compared with the canonical transcript before punctuation is proposed; mismatches are review flags. "
-                f"Inter-word gaps of 0.30 seconds propose commas and gaps of 0.75 seconds propose periods, producing {punctuation['total_proposed_commas'] + punctuation['total_proposed_periods']:,} proposed marks across {punctuation['review_manifest_count']:,} auditable review records. "
-                f"The observed median gap is {pauses['median_interword_gap_seconds']:.2f} seconds; no SSML tags, pause tokens, or invented Somali words are introduced."
-            ),
-            html.P(
-                "The resulting CosyVoice 3 training dataset, Omar punctuation + pace instruction dataset V1, pairs each included clip with a truthful natural-language pace instruction. "
-                "These instructions are training labels, not commands inferred at synthesis time: each one is assigned from the observed overall WPM for its source clip. "
-                "The derived dataset retains the punctuation-V1 transcript and original FLAC audio while adding the instruction, numeric WPM, and pace tier as explicit fields."
-            ),
-            html.Table([
-                html.Tbody([
-                    html.Tr([html.Th("Audio"), html.Td("Segment → denoise → loudness-normalise → mono 24 kHz PCM-16 FLAC")]),
-                    html.Tr([html.Th("Text"), html.Td("Compare timed words to transcript → propose ordinary punctuation → human-review derived copy")]),
-                    html.Tr([html.Th("Slow · < 120.9 WPM"), html.Td("You are a helpful assistant. Speak slowly and deliberately.")]),
-                    html.Tr([html.Th("Medium · 120.9–154.5 WPM"), html.Td("You are a helpful assistant. Speak at a natural, moderate pace.")]),
-                    html.Tr([html.Th("Fast · > 154.5 WPM"), html.Td("You are a helpful assistant. Speak at a fast pace.")]),
-                    html.Tr([html.Th("Provenance"), html.Td("Keep original source material immutable; version derived transcripts, manifests, and audits separately")]),
-                ])
-            ], className="method-note"),
-        ], id="processing"),
-        html.Footer("Reproducibility · Generated from data/omar_wpm.csv and data/omar_dataset_summary.json by scripts/analyze_omar_dataset.py.", className="paper-footer"),
-    ], className="github-paper"), className="single-page")
+            html.Div([html.Div("MODEL + TRAINING NOTE", className="signal-label"), html.H2("How a duplex turn moves through the stack."), html.P("Nemotron VoiceChat is designed for a conversation in motion: it listens to incoming audio while the dialogue state is still evolving, then produces the assistant response as generated speech rather than treating listening and speaking as unrelated batch jobs.")], className="section-heading"),
+            html.Div([
+                html.Article([html.H3("1. Listen and represent"), html.P("The streaming duplex STT path consumes a waveform and updates a text representation as speech arrives. For Somali work, this stage must be measured on held-out Somali conversations for transcription stability, endpoint timing, overlap behavior, and interruption recovery—not just word accuracy on isolated clips.")]),
+                html.Article([html.H3("2. Decide the next turn"), html.P("The language layer uses the recognized conversational context to choose the assistant response. This is where turn order, role labels, transcript quality, and conversational intent matter. The current speaker audit has no response text targets, so it cannot by itself supervise this part of the model.")]),
+                html.Article([html.H3("3. Speak in codec space"), html.P("The autoregressive EAR TTS path predicts audio-codec tokens for the answer and decodes them into a waveform. Audio quality work therefore needs both signal checks—sample rate, clipping, channel layout—and listener review for pronunciation, turn timing, naturalness, and unwanted overlap.")]),
+            ], className="model-text-grid"),
+            html.Div([
+                html.Article([html.H3("What the 5.22 hours mean"), html.P("This build contains 629 accepted clips, totaling 5.22 raw WAV hours. It contains 3.47 attributed speaker-hours because diarization measures speech regions, not every second of the file. The difference is expected: pauses, silence, and non-attributed regions are not speaker training evidence.")]),
+                html.Article([html.H3("What happens before tuning"), html.P("Create reviewed Somali transcripts, preserve which speaker owns each turn, and join adjacent turns into input → response examples. Split by source program before training so the same voices and episodes do not leak from training into evaluation. Keep the current audit as the acoustic eligibility record for every retained example.")]),
+                html.Article([html.H3("What a credible experiment looks like"), html.P("Start with a fixed held-out conversational set and a baseline. Log streaming transcription quality, response quality, generated-audio quality, interruption handling, latency, and native Somali listener preference. Promote a checkpoint only when it improves the held-out suite—not when a training loss alone falls.")]),
+            ], className="model-text-grid model-text-grid-secondary"),
+        ], className="nemotron-section model-notes"),
+        html.Footer("Somali Duplex · local WAV audit build · Nemotron / NeMo VoiceChat research dashboard", className="nemotron-footer"),
+    ], className="nemotron-page")
